@@ -1,0 +1,777 @@
+{
+  "name": "Iterative Multi-Agent Research & Synthesis Pipeline with Automated Review",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "18a173bd-0dfa-4371-81e2-de5cd03eece2",
+        "options": {}
+      },
+      "id": "06809222-f769-4543-a064-7494a9551f9f",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        224
+      ],
+      "webhookId": "18a173bd-0dfa-4371-81e2-de5cd03eece2"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "task_id",
+              "name": "task_id",
+              "value": "={{ $now.toMillis().toString() }}",
+              "type": "string"
+            },
+            {
+              "id": "task",
+              "name": "task",
+              "value": "=Research the company at {{ $json.body.company_url }} and produce a concise, well-structured company profile report covering what the company does, its products/services, market position, and any notable facts.",
+              "type": "string"
+            },
+            {
+              "id": "orchestrator_input",
+              "name": "orchestrator_input",
+              "value": "=Research the company at {{ $json.body.company_url }} and produce a concise, well-structured company profile report covering what the company does, its products/services, market position, and any notable facts.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "bf55fc90-cbc1-4c72-8106-e62215f7e71c",
+      "name": "Initialize Task",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        224,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.orchestrator_input }}",
+        "options": {
+          "systemMessage": "You are the Orchestrator Agent, the lead coordinator of a multi-agent collaboration framework for task automation. Given a complex task in plain English, you must:\n\n1. PLAN: Break the task into a logical sequence of subtasks.\n2. DELEGATE: Call the specialist agent tools in the correct order, passing the output of each as the input to the next:\n   - \"researcher_agent\" first, to gather factual information (it can use Wikipedia).\n   - then \"analyst_agent\", to turn that research into 3-5 structured key insights.\n   - then \"writer_agent\", to write the final polished report or email from those insights.\n3. COMBINE: Integrate the specialists' outputs into a single, coherent final answer that fully satisfies the original task.\n\nRules:\n- Always pass rich, specific context to each tool so it can do its job.\n- Never fabricate facts yourself; rely on the researcher for factual grounding and never let the writer add unsupported claims.\n- If you receive reviewer feedback asking for a revision, carefully address every point of that feedback and produce an improved final answer, reusing prior context from memory.\n- Your final response must be ONLY the polished final deliverable (report or email) — no meta commentary about your process.",
+          "maxIterations": 10
+        }
+      },
+      "id": "eeded536-dc04-4031-b910-9970f192d1fe",
+      "name": "Orchestrator Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        576,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {
+          "temperature": 0.3
+        }
+      },
+      "id": "2279bf86-102e-4331-8b2d-8b0935a95441",
+      "name": "Orchestrator Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        224,
+        496
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "Gateway credits",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Initialize Task').item.json.task_id }}",
+        "contextWindowLength": 12
+      },
+      "id": "2c9c9e45-27f6-415b-b9a6-13db86f42201",
+      "name": "Orchestrator Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        416,
+        496
+      ]
+    },
+    {
+      "parameters": {
+        "toolDescription": "Gathers factual, verifiable background information for a subtask using Wikipedia. Call this first for any task that needs facts, definitions, history, or context.",
+        "text": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('input', 'The research question or subtask the researcher should investigate, including any relevant context from the overall task.') }}",
+        "options": {
+          "systemMessage": "You are the Researcher Agent in a multi-agent collaboration framework. Your sole job is to gather accurate, factual information relevant to the subtask you are given, using the \"wikipedia\" tool. Search Wikipedia for the key entities, concepts, and facts. Summarise what you find as concise, well-sourced bullet points. Only report facts you actually found via the tool — never invent, guess, or embellish. If information cannot be found, say so explicitly. Do not draw conclusions or write final prose; simply deliver clean factual material for the Analyst Agent to work with.",
+          "maxIterations": 8
+        }
+      },
+      "id": "1fc7be3e-85c7-497e-9872-8e7fbb8e05c5",
+      "name": "researcher_agent",
+      "type": "@n8n/n8n-nodes-langchain.agentTool",
+      "typeVersion": 3,
+      "position": [
+        576,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "6216a512-99d0-43d4-9783-813e1a3827e8",
+      "name": "Researcher Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        544,
+        736
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "Gateway credits",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "8c8984e3-44b2-40a1-84ff-e204ace7f660",
+      "name": "wikipedia",
+      "type": "@n8n/n8n-nodes-langchain.toolWikipedia",
+      "typeVersion": 1,
+      "position": [
+        752,
+        736
+      ]
+    },
+    {
+      "parameters": {
+        "toolDescription": "Turns raw research material into 3-5 clearly structured key insights. Call this after the researcher has gathered facts and before the writer produces the final output.",
+        "text": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('input', 'The research findings and factual material to analyse, plus the original task context.') }}",
+        "options": {
+          "systemMessage": "You are the Analyst Agent in a multi-agent collaboration framework. You receive factual research material and must distil it into 3 to 5 key, structured insights that directly serve the original task. For each insight, give a short bold headline followed by one or two sentences of explanation grounded strictly in the provided material. Do not introduce facts that were not present in the research — if the evidence is thin, note the gap. Prioritise relevance, non-redundancy, and decision-usefulness. Output only the structured insights; do not write the final report or email.",
+          "maxIterations": 6
+        }
+      },
+      "id": "52008e29-fd9c-463d-b0a9-675aee3cc487",
+      "name": "analyst_agent",
+      "type": "@n8n/n8n-nodes-langchain.agentTool",
+      "typeVersion": 3,
+      "position": [
+        928,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {
+          "temperature": 0.3
+        }
+      },
+      "id": "9173f290-90bf-4d70-b697-48a93c50ff49",
+      "name": "Analyst Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        928,
+        736
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "Gateway credits",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Writes the final polished report or email from the structured insights. Call this last, once analysis is complete, to produce the deliverable.",
+        "text": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('input', 'The structured insights to turn into a polished deliverable, plus the original task and the desired format (report or email).') }}",
+        "options": {
+          "systemMessage": "You are the Writer Agent in a multi-agent collaboration framework. You transform the structured insights you are given into a clear, polished, professional deliverable (a report or an email, matching what the task asked for). Write in a confident, well-organised style with headings or short paragraphs as appropriate. Critically: you must NOT add any facts, figures, names, or claims that were not provided in the insights — write only from the material given. If something is missing, write around it gracefully rather than inventing it. Return only the finished deliverable text.",
+          "maxIterations": 4
+        }
+      },
+      "id": "004f80ce-ef04-4cc7-866b-b25671a5368d",
+      "name": "writer_agent",
+      "type": "@n8n/n8n-nodes-langchain.agentTool",
+      "typeVersion": 3,
+      "position": [
+        1280,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {
+          "temperature": 0.6
+        }
+      },
+      "id": "251d2817-66c4-45c7-881e-e84df607c899",
+      "name": "Writer Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1296,
+        736
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "Gateway credits",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Original task:\n{{ $(\"Initialize Task\").item.json.task }}\n\nFinal output produced by the orchestrator:\n{{ $json.output }}\n\nEvaluate how well the final output satisfies the original task.",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are the Reviewer Agent, a strict but fair quality evaluator in a multi-agent framework. You are given an original task and the final output produced for it. Score the output from 1 to 10 based on how completely, accurately, and clearly it fulfils the original task (10 = excellent, fully complete and accurate; 1 = fails the task). Provide concise, actionable feedback describing exactly what is missing or could be improved. Respond ONLY with a raw JSON object, no markdown fences, exactly in this shape: {\"score\": number, \"feedback\": \"text\"}."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "id": "401859ba-55b5-4c95-afe8-8a6e3e8ca128",
+      "name": "Reviewer Agent",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1216,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {
+          "temperature": 0.1
+        }
+      },
+      "id": "a7de6414-4368-461d-98ad-64a32207997c",
+      "name": "Reviewer Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1248,
+        336
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "Gateway credits",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = ($input.first().json.text ?? $input.first().json.output ?? '').toString().trim();\nconst cleaned = raw.replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();\nlet parsed;\ntry {\n  parsed = JSON.parse(cleaned);\n} catch (e) {\n  const match = cleaned.match(/\\{[\\s\\S]*\\}/);\n  parsed = match ? JSON.parse(match[0]) : { score: 0, feedback: 'Could not parse reviewer output: ' + cleaned };\n}\nconst score = Number(parsed.score);\nreturn [{ json: { output: { score: Number.isFinite(score) ? score : 0, feedback: String(parsed.feedback ?? '') } } }];"
+      },
+      "id": "5289b2c1-131c-4e8e-b49f-052d6f9cca80",
+      "name": "Parse Review",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1520,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "score-ok",
+              "leftValue": "={{ $json.output.score }}",
+              "rightValue": 8,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            },
+            {
+              "id": "max-loops",
+              "leftValue": "={{ $runIndex }}",
+              "rightValue": 2,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "ab99bd82-3ad0-4f10-bd24-7d223f1a1f58",
+      "name": "Approved or Max Revisions?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1584,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "task_id",
+              "name": "task_id",
+              "value": "={{ $(\"Initialize Task\").item.json.task_id }}",
+              "type": "string"
+            },
+            {
+              "id": "task",
+              "name": "task",
+              "value": "={{ $(\"Initialize Task\").item.json.task }}",
+              "type": "string"
+            },
+            {
+              "id": "final_output",
+              "name": "final_output",
+              "value": "={{ $(\"Orchestrator Agent\").item.json.output }}",
+              "type": "string"
+            },
+            {
+              "id": "review_score",
+              "name": "review_score",
+              "value": "={{ $json.output.score }}",
+              "type": "number"
+            },
+            {
+              "id": "status",
+              "name": "status",
+              "value": "={{ $json.output.score >= 8 ? 'approved' : 'delivered_after_max_revisions' }}",
+              "type": "string"
+            },
+            {
+              "id": "timestamp",
+              "name": "timestamp",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "21410d15-f60d-4910-921f-27e6a55b2ec8",
+      "name": "Finalize Result",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1808,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "13BonnsaSztJ36G9BpRSaXTLLJxu7p2QMvCjVxGXPi0g",
+          "mode": "list",
+          "cachedResultName": "Lead Generation",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/13BonnsaSztJ36G9BpRSaXTLLJxu7p2QMvCjVxGXPi0g/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "1798396023",
+          "cachedResultName": "Task Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/13BonnsaSztJ36G9BpRSaXTLLJxu7p2QMvCjVxGXPi0g/edit#gid=1798396023"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "task_id",
+              "displayName": "task_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "task",
+              "displayName": "task",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "final_output",
+              "displayName": "final_output",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "review_score",
+              "displayName": "review_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "66b84b3e-d464-4484-97d0-f10ba465fd31",
+      "name": "Log to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2032,
+        64
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "kgmgLXQbE1xnuyUl",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "orchestrator_input",
+              "name": "orchestrator_input",
+              "value": "=Please revise your previous answer. Original task: {{ $(\"Initialize Task\").item.json.task }}\n\nReviewer score: {{ $json.output.score }}/10.\nReviewer feedback to address: {{ $json.output.feedback }}\n\nAddress every point of the feedback and produce an improved, final polished deliverable.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "5fe56537-dc54-4fc3-bc8e-3594ce479386",
+      "name": "Prepare Revision",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1808,
+        320
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Initialize Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Initialize Task": {
+      "main": [
+        [
+          {
+            "node": "Orchestrator Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Orchestrator Agent": {
+      "main": [
+        [
+          {
+            "node": "Reviewer Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Orchestrator Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Orchestrator Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Orchestrator Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Orchestrator Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "researcher_agent": {
+      "ai_tool": [
+        [
+          {
+            "node": "Orchestrator Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Researcher Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "researcher_agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "wikipedia": {
+      "ai_tool": [
+        [
+          {
+            "node": "researcher_agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "analyst_agent": {
+      "ai_tool": [
+        [
+          {
+            "node": "Orchestrator Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyst Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "analyst_agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "writer_agent": {
+      "ai_tool": [
+        [
+          {
+            "node": "Orchestrator Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Writer Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "writer_agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reviewer Agent": {
+      "main": [
+        [
+          {
+            "node": "Parse Review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reviewer Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Reviewer Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Review": {
+      "main": [
+        [
+          {
+            "node": "Approved or Max Revisions?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approved or Max Revisions?": {
+      "main": [
+        [
+          {
+            "node": "Finalize Result",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Revision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Finalize Result": {
+      "main": [
+        [
+          {
+            "node": "Log to Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Revision": {
+      "main": [
+        [
+          {
+            "node": "Orchestrator Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "versionId": "e728dd05-7f72-47b5-bd20-b6ae26f9c7a0",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "671091115e9e480cd20c4802aa86b5224b5b467ba98ce8c11f2cae1bfff7552a"
+  },
+  "nodeGroups": [],
+  "id": "y4y0AEzxzplASmFW",
+  "tags": []
+}
