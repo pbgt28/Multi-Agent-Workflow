@@ -1,4 +1,4 @@
-# Multi-agent Company Research Pipeline
+# Multi-Agent Company Research Pipeline
 
 An n8n workflow that takes a company URL, researches the company, writes a profile report, and has a separate reviewer agent score the report. If the reviewer isn't satisfied, the report goes back for another revision. Approved results are logged to a Google Sheet.
 
