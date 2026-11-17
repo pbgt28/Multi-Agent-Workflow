@@ -27,7 +27,7 @@ The workflow has five agents. Each one has its own chat model node.
 | Writer | Writes the final profile report |
 | Reviewer | Scores the report and decides whether it passes |
 
-All five use OpenAI chat models. [add the exact model name(s) here]
+All five use OpenAI chat models. 
 
 ## Setup
 
