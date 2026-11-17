@@ -1,12 +1,12 @@
 # Multi-Agent Company Research Pipeline
 
-An n8n workflow that takes a company URL, researches the company, writes a profile report, and has a separate reviewer agent score the report. If the reviewer isn't satisfied, the report goes back for another revision. Approved results are logged to a Google Sheet.
+An n8n workflow that takes a company URL, researches the company, and writes a profile report. A separate reviewer agent then scores the report out of 10. If the reviewer isn't satisfied, the report goes back for another revision. Approved results are logged to a Google Sheet.
 
 I built it to see how far an orchestrator agent could coordinate other agents on its own, and to add an automated check on the output instead of trusting the first draft.
 
 ## How it works
 
-1. A POST request hits the webhook with the task (a company URL plus the instruction to write a concise company profile).
+1. A POST request hits the webhook with the task: a company URL and an instruction to write a concise company profile.
 2. The Initialize Task node sets up the task ID, the task text, and the revision counter.
 3. The Orchestrator Agent reads the task and calls three sub-agents as tools: researcher, analyst, and writer.
 4. The Reviewer Agent reads the finished report and returns a score and a verdict.
@@ -27,7 +27,7 @@ The workflow has five agents. Each one has its own chat model node.
 | Writer | Writes the final profile report |
 | Reviewer | Scores the report and decides whether it passes |
 
-All five use OpenAI chat models. 
+All five use OpenAI chat models. [add the exact model name(s) here]
 
 ## Setup
 
@@ -59,23 +59,29 @@ Each finished run adds one row to the sheet.
 | task_id | A timestamp-based ID for the run |
 | task | The input given to the workflow |
 | final_output | The report that was approved |
-| review_score | The reviewer's score [add the scale, for example out of 10] |
+| review_score | The reviewer's score out of 10 |
 | status | approved |
 | timestamp | When the row was logged |
 
 ## Results so far
 
-I ran the workflow on 8 companies: Salesforce, Microsoft, American Express, Goldman Sachs, Morgan Stanley, Nvidia, SAP, and Infosys. Salesforce and Goldman Sachs were run more than once, which makes 11 runs in total.
+I ran the workflow on 5 companies and timed every run from the n8n Executions tab.
 
-- All 11 runs ended with status approved.
-- The review score was 9 on eight runs and 8 on three runs, an average of 8.7.
-- Three runs were timed, and each took about 48 seconds.
+| Company | Review score (out of 10) | Run time |
+|---|---|---|
+| Infosys | 8 | 48.1 s |
+| SAP | 8 | 48.3 s |
+| American Express | 9 | 56.8 s |
+| Microsoft | 9 | 46.7 s |
+| Wipro | 9 | 55.0 s |
+
+All 5 runs ended with status approved. The average review score was 8.6 out of 10, and the average run time was about 51 seconds.
 
 ## Limitations
 
-- The reviewer is an LLM, so its score measures how well the report meets the reviewer's criteria, not whether the facts are correct. A few reports cite figures from earlier years and still passed.
+- The reviewer is an LLM, so its score measures how well the report meets the reviewer's criteria, not whether the facts are correct.
 - The sheet doesn't record how many revisions each run needed, so I can't say how many reports passed on the first try.
-- Only 3 of the 11 runs were timed.
+- Five runs is a small sample, and all of them were approved, so these numbers say little about how often the reviewer sends a report back.
 - The researcher uses Wikipedia only, so coverage of smaller or newer companies will be thin.
 
 ## Possible next steps
